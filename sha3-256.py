@@ -12,6 +12,11 @@ l = 6		# Change this as desired from {0,1,2,3,4,5,6}
 w = 2 ** l	# The width of the z-index of the state array
 b = 25 * w	# 5 * 5 * w, the width of the entire state array
 
+# GLOBAL HARD-CODED CONSTANTS FOR SPONGE CONSTRUCTION
+outbits = 256			# The size of the message digest
+capacity = 2 * outbits	# capacity of the sponge function
+rate = b - capacity		# rate of the sponge function
+
 # Convert in input character string into bits
 def stringToBits(input):
 	result = ''
@@ -20,7 +25,7 @@ def stringToBits(input):
 		byte = '{0:08b}'.format(letterCode)	# convert to binary
 		byte = byte[::-1]					# reverse, convert to little endian
 		result += byte						# add byte to the result
-	result += '01100000' # Denote SHA3 with appropriate suffix
+	result += "01" # Denote SHA3 with appropriate suffix
 
 # Convert a bitstring into a 5*5*w state array
 def bitsToStateArray(input):
@@ -179,3 +184,77 @@ def iota(state_array, round_index):
 
 	return result
 
+# KECCAK-p[b, nr]
+# Inputs: String S, number of rounds nr
+# Output: string S' of length b
+def keccakP(inputString, numberOfRounds):
+	state_array = bitsToStateArray(stringToBits(inputString))
+	begin = 12 + (2 * l) - numberOfRounds
+	end = 12 + (2 * l) - 1
+	for i in range(begin, end + 1):
+		state_array = iota(chi(pi(rho(theta(state_array)))), i)
+	return state_array
+
+# SPONGE CONSTRUCTION
+
+# pad10*1 implementation
+# Input: positive integer x, non-negative integer m
+# Output: string P such that m + len(P) is a positive multiple of X
+def pad(x, m):
+	j = (0 - m - 2) % x
+	result = [1]
+	for i in range(j):
+		result.append(0)
+	result.append(1)
+	return result
+
+# sponge implementation
+# Inputs: String N, nonnegative integer d
+# Output: String Z such that len(Z) = d
+def sponge(N, d):
+	# Step 1
+	P = []
+	for i in range(len(N)):
+		P.append(N[i])
+	temp = pad(rate, len(N))
+	for i in range(len(temp)):
+		P.append(temp[i])
+
+	n = len(P) / rate	# Step 2
+
+	# Step 5
+	S = []
+	for i in range(b):
+		S.append(0)
+	
+	# Step 6
+	temp = []
+	for i in range(capacity):
+		temp.append(0)
+	for i in range(n):
+		temp.insert(0, P[i])
+		S = keccakP(S ^ temp, 12 + (2 * l))
+	
+	while True:
+		# Steps 7-8
+		Z = []
+		for i in range(rate):
+			Z.append(S[i])
+
+		# Step 9
+		Zvalue = 0
+		for bit in Z:
+			Zvalue = (Zvalue << 1) | bit
+		if d <= Zvalue:
+			result = []
+			for i in range(d):
+				result.append(Z[i])
+				return result
+
+		# Step 10
+		S = keccakP(S, 12 + (2 * l))
+
+## RUN SHA3-256
+message = input("Please enter a message to hash:\n")
+result = sponge(message, 256)
+print("Result:\n" + result)
