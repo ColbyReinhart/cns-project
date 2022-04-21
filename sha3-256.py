@@ -103,3 +103,79 @@ def rho(state_array):
 	# Return A'
 	return result
 
+# pi implementation
+# Takes in a state array A and value w (globally defined)
+# Returns A', which is the state array with each slice linearly transformed
+def pi(state_array):
+	result = []
+	for x in range(5):
+		result.append([])
+		for y in range(5):
+			result[x].append([])
+			for z in range(w):
+				result[x][y].append(state_array[(x + (3 * y)) % 5][x][z])
+	return result
+
+# chi implementation
+# Takes in a state array A and value w (globally defined)
+# Returns A', which is the state array with each bit XORed with a non-linear
+# function of two other bits in its row
+def chi(state_array):
+	result = []
+	for x in range(5):
+		result.append([])
+		for y in range(5):
+			result[x].append([])
+			for z in range(w):
+				temp1 = state_array[(x + 1) % 5][y][z] ^ 1
+				temp2 = state_array[(x + 2) % 5][y][z]
+				result[x][y].append((state_array[x][y][z] ^ temp1) * temp2)
+	return result
+
+# rc implementation
+# Takes in an integer t
+# Returns a bit servins as a round constant
+def rc(t):
+	if t % 255 == 0:
+		return 1
+
+	R = [1,0,0,0,0,0,0,0]
+	for i in range (1, (t % 255) + 1):
+		R.insert(0, 0)	# Insert a 0 at the front
+		R[0] ^= R[8]
+		R[4] ^= R[8]
+		R[5] ^= R[8]
+		R[6] ^= R[8]
+		R.pop()
+	
+	return R[0]
+
+# iota implementation
+# Takes in a state array A, a value w (globally defined), and a round index ir
+# Returns A', which is the state array with modifications depending on the
+# round index
+def iota(state_array, round_index):
+	# Copy A into A'
+	result = []
+	for x in range(5):
+		result.append([])
+		for y in range(5):
+			result[x].append([])
+			for z in range(w):
+				result[x][y].append(state_array[x][y][z])
+	
+	# Define RC, which is a string of w zeroes
+	RC = []
+	for i in range(w):
+		RC.append(0)
+
+	# STEP 3
+	for j in range(l + 1):
+		RC[2 ** j - 1] = rc(j + (7 * round_index))
+
+	# STEP 4
+	for z in range(w):
+		result[0][0][z] ^= RC[z]
+
+	return result
+
