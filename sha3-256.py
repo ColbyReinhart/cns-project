@@ -10,12 +10,12 @@ import argparse
 # GLOBAL HARD-CODED CONSTANTS FOR KECCAK
 l = 6		# Change this as desired from {0,1,2,3,4,5,6}
 w = 2 ** l	# The width of the z-index of the state array
-b = 25 * w	# 5 * 5 * w, the width of the entire state array
+b = 25 * w	# 5 * 5 * w, the width of the entire state array (1600)
 
 # GLOBAL HARD-CODED CONSTANTS FOR SPONGE CONSTRUCTION
 outbits = 256			# The size of the message digest
-capacity = 2 * outbits	# capacity of the sponge function
-rate = b - capacity		# rate of the sponge function
+capacity = 2 * outbits	# capacity of the sponge function (512)
+rate = b - capacity		# rate of the sponge function (1088)
 
 # Convert in input character string into bits
 def stringToBits(input):
