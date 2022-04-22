@@ -1,11 +1,13 @@
 # A python implementation of SHA3-256
 # Colby Reinhart, Tyler Gargasz
 # CS-45203: Computer Network Security
-# 4-14-2022
+# 4-22-2022
 
-from distutils.log import error
-import sys
-import argparse
+# USAGE:
+# Requires python 3.10.0 or higher
+# run with "python sha3-256.py"
+# When prompted, enter the message to hash.
+# The digest will then be returned via stdout.
 
 # GLOBAL HARD-CODED CONSTANTS FOR KECCAK
 l = 6		# Change this as desired from {0,1,2,3,4,5,6}
