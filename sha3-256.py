@@ -3,8 +3,8 @@
 # CS-45203: Computer Network Security
 # 4-14-2022
 
+from distutils.log import error
 import sys
-import numpy
 import argparse
 
 # GLOBAL HARD-CODED CONSTANTS FOR KECCAK
@@ -19,13 +19,31 @@ rate = b - capacity		# rate of the sponge function (1088)
 
 # Convert in input character string into bits
 def stringToBits(input):
-	result = ''
+	result = []
 	for char in input:
 		letterCode = ord(char)				# get the letter code
 		byte = '{0:08b}'.format(letterCode)	# convert to binary
 		byte = byte[::-1]					# reverse, convert to little endian
-		result += byte						# add byte to the result
-	result += "01" # Denote SHA3 with appropriate suffix
+		byte = [int(c) for c in byte]		# Convert into list of bits
+		result.extend(byte)					# Append the list onto result
+	return result
+
+# Convert a bitstring into a string of characters
+# Assumes the provided bit string % 8 == 0
+def bitsToString(input):
+	result = ''
+	for i in range(len(input) // 8):
+		value = 0
+
+		# Convert byte to int
+		for j in range(8):
+			if input[(8 * i) + j] == 1:
+				value += (2 ** j)
+		
+		# Convert int to char and append to string
+		result += chr(value)
+
+	return result
 
 # Convert a bitstring into a 5*5*w state array
 def bitsToStateArray(input):
@@ -40,6 +58,32 @@ def bitsToStateArray(input):
 					result[x][y].append(int(input[value]))	# Fill in the state
 	return result
 
+# Convert a state array back into a bitstring
+def stateArrayToBits(input):
+	# Construct lanes
+	laneList = []
+	for j in range(5):
+		for i in range(5):
+			laneList.append(input[i][j])
+	# laneList: (0,0), (1,0), (2,0) ... (0,1), (1,1), (2,1) ... etc
+
+	#Construct planes
+	planeList = []
+	counter = 0
+	for i in range(5):
+		planeList.append([])
+		for j in range(5):
+			planeList[i].extend(laneList[counter])
+			counter += 1
+
+	# Construct final list
+	bitstring = []
+	for plane in planeList:
+		bitstring.extend(plane)
+
+	# Return the resulting bitstring
+	return bitstring
+
 # STEP MAPPINGS
 
 # theta implementation
@@ -48,7 +92,7 @@ def bitsToStateArray(input):
 # of two columns in the array
 def theta(state_array):
 	# Define C and D, which will be temporary containers
-	C, D = []
+	C = []
 	
 	# Fill C with XORs from each column of the state
 	for x in range(5):
@@ -56,9 +100,10 @@ def theta(state_array):
 		for z in range(w):
 			C[x].append(0)
 			for y in range(5):
-				C[x][z] ^= state_array[x, y, z]
+				C[x][z] ^= state_array[x][y][z]
 
 	# Fill D with operations based on C
+	D = []
 	for x in range(5):
 		D.append([])
 		for z in range(w):
@@ -99,7 +144,7 @@ def rho(state_array):
 	# Perform circular shift
 	for t in range(24):
 		for z in range(w):
-			result[x][y][z] = state_array[x][y][(z - (t + 1) * (t + 2) / 2) % w]
+			result[x][y][z] = state_array[x][y][int((z - (t + 1) * (t + 2) / 2) % w)]
 			tempX = x
 			tempY = y
 			x = y
@@ -185,10 +230,10 @@ def iota(state_array, round_index):
 	return result
 
 # KECCAK-p[b, nr]
-# Inputs: String S, number of rounds nr
-# Output: string S' of length b
+# Inputs: bitstring S, number of rounds nr
+# Output: bitstring S' of length b
 def keccakP(inputString, numberOfRounds):
-	state_array = bitsToStateArray(stringToBits(inputString))
+	state_array = bitsToStateArray(inputString)
 	begin = 12 + (2 * l) - numberOfRounds
 	end = 12 + (2 * l) - 1
 	for i in range(begin, end + 1):
@@ -209,52 +254,58 @@ def pad(x, m):
 	return result
 
 # sponge implementation
-# Inputs: String N, nonnegative integer d
+# Inputs: bitstring N, nonnegative integer d
 # Output: String Z such that len(Z) = d
-def sponge(N, d):
-	# Step 1
+def sponge(N, numRounds):
+	# Copy N into P
 	P = []
 	for i in range(len(N)):
 		P.append(N[i])
-	temp = pad(rate, len(N))
-	for i in range(len(temp)):
-		P.append(temp[i])
 
-	n = len(P) / rate	# Step 2
+	# Pad P with 0's to equal 1600 bits
+	P.extend([0] * 512)
 
-	# Step 5
-	S = []
-	for i in range(b):
-		S.append(0)
+	# Build initial value (1600 bits)
+	state = [0] * (b)
+
+	# XOR with state and perform keccak
+	for i in range(numRounds):
+		
+		# Get a block and pad it with zeroes to make it 1600 bits long
+		block = P[(i * rate):(i * rate) + rate]	
+		block.extend([0] * capacity)
+
+		# XOR state with block
+		xorResult = [lhs ^ rhs for lhs, rhs in zip(state, block)]
+
+		# Run result through f, which is keccak
+		state = keccakP(xorResult, 12 + (2 * l))
+
+		# Convert result back into bit string
+		state = stateArrayToBits(state)
 	
-	# Step 6
-	temp = []
-	for i in range(capacity):
-		temp.append(0)
-	for i in range(n):
-		temp.insert(0, P[i])
-		S = keccakP(S ^ temp, 12 + (2 * l))
-	
-	while True:
-		# Steps 7-8
-		Z = []
-		for i in range(rate):
-			Z.append(S[i])
-
-		# Step 9
-		Zvalue = 0
-		for bit in Z:
-			Zvalue = (Zvalue << 1) | bit
-		if d <= Zvalue:
-			result = []
-			for i in range(d):
-				result.append(Z[i])
-				return result
-
-		# Step 10
-		S = keccakP(S, 12 + (2 * l))
+	# Return the first 256 bits of the resulting array, which is the hash
+	return state[:256]
 
 ## RUN SHA3-256
-message = input("Please enter a message to hash:\n")
-result = sponge(message, 256)
-print("Result:\n" + result)
+message = input("Please enter a message to hash:\n")	# Get input
+shaInput = stringToBits(message)						# Char string -> list of bits
+shaInput.extend([0, 1, 1, 0, 0, 0, 0, 0])				# Add SHA3 suffix
+shaInput += pad(rate, len(shaInput) % rate)				# Pad bit list to % 1088 bits
+result = sponge(shaInput, len(shaInput) // rate)		# Run SHA3-256
+
+# Convert the result into the correct form
+hash = ""
+for i in range(32):
+	# Get a byte
+	byte = ""
+	for j in range(8):
+		byte += str(result[(i * 8) + j])
+
+	# Convert to big-endian
+	byte = byte[::-1]
+
+	# Format
+	hash += '{0:02x}'.format(int(byte, 2))
+
+print("Result:\n" + hash)
