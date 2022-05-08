@@ -12,9 +12,10 @@ from random import choice, randint          # Used to randomly select characters
 from string import ascii_letters,  digits   # ASCII character (lower and upper), and digits 0-9
 
 
-# Creating large array of inputs
-# Words.txt contains 58110 entries
-# If the output size is equal to the input size, then there is no collision
+# The logic behind our collision testing is simple: the dictionary data type in python
+# does not allow for duplication (collision) of data, and in such as case, data will
+# be overwritten rather than added. Therefore, if the input size is the same as our final
+# dictionary size, then no collision occured.
 
 # Function used to generate ramdom strings
 def get_random_string(x):
