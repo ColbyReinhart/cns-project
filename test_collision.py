@@ -25,7 +25,7 @@ def get_random_string(x):
 
 
 # Testing the SHA3-256 library implementation
-print("Begin Testing Library Implementation\n")
+print("\nBegin Testing Library Implementation\n")
 
 testSize = int(input("Input Number of tests to run: "))
 
