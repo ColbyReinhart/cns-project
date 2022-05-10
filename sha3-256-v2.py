@@ -48,6 +48,7 @@ RC = [
 # Convert an input string of arbitrary length int a string of bits
 # Input: a text string of any length
 # Output: a bit string representing the text in binary
+# The result is such that each 8 bits is the reversed version of an ASCII code
 def stringToBits(textString):
 	result = []
 	for character in textString:
@@ -77,7 +78,9 @@ def sha3_256(input):
 
 	# Convert input to bit string
 	bitString = stringToBits(input)
-	print(bitString)
+
+	# Add '01' to the end (per specification)
+	bitString.extend([0, 1])
 
 	# Split the bit string into blocks of length r
 	blocks = []
@@ -105,9 +108,16 @@ def sha3_256(input):
 	# Get the first digestSize bits from the resulting state
 	digest = state[:digestSize]
 
-	# Process the digest into hex
-	digest = digest[::-1]	# Convert back to big endian first
-	digest = hex(int("".join([str(bit) for bit in digest]), 2)) # Convert to hex string
+	# Convert each byte back to big endian
+	flippedDigest = []
+	for i in range(0, digestSize, 8):
+		temp = digest[i:i+8]
+		temp = temp[::-1]
+		flippedDigest.extend(temp)
+	digest = flippedDigest
+
+	# Convert from a bit list to a hex string
+	digest = hex(int("".join([str(bit) for bit in digest]), 2))
 	digest = digest[2:]	# Remove the "0x" which gets added by hex()
 	
 	# Return the result
