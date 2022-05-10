@@ -19,14 +19,30 @@ c = b - r	# The capacity, which is padded to r for the keccak function (512)
 digestSize = 256
 numRounds = 12 + (2 * l)    # The number of rounds for each f-function (24)
 RC = [
-		0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
-		0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
-		0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
-		0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
-		0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
-		0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
-		0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
-		0x8000000000008080, 0x0000000080000001, 0x8000000080008008
+		"0000000000000000000000000000000000000000000000000000000000000001",
+		"0000000000000000000000000000000000000000000000001000000010000010",
+		"1000000000000000000000000000000000000000000000001000000010001010",
+		"1000000000000000000000000000000010000000000000001000000000000000",
+		"0000000000000000000000000000000000000000000000001000000010001011",
+		"0000000000000000000000000000000010000000000000000000000000000001",
+		"1000000000000000000000000000000010000000000000001000000010000001",
+		"1000000000000000000000000000000000000000000000001000000000001001",
+		"0000000000000000000000000000000000000000000000000000000010001010",
+		"0000000000000000000000000000000000000000000000000000000010001000",
+		"0000000000000000000000000000000010000000000000001000000000001001",
+		"0000000000000000000000000000000010000000000000000000000000001010",
+		"0000000000000000000000000000000010000000000000001000000010001011",
+		"1000000000000000000000000000000000000000000000000000000010001011",
+		"1000000000000000000000000000000000000000000000001000000010001001",
+		"1000000000000000000000000000000000000000000000001000000000000011",
+		"1000000000000000000000000000000000000000000000001000000000000010",
+		"1000000000000000000000000000000000000000000000000000000010000000",
+		"0000000000000000000000000000000000000000000000001000000000001010",
+		"1000000000000000000000000000000010000000000000000000000000001010",
+		"1000000000000000000000000000000010000000000000001000000010000001",
+		"1000000000000000000000000000000000000000000000001000000010000000",
+		"0000000000000000000000000000000010000000000000000000000000000001",
+		"1000000000000000000000000000000010000000000000001000000000001000"
 	]
 
 # STEPS
@@ -70,6 +86,129 @@ def pad10_1(x, m):
 	result.append(1)				# result = 1, 0^j, 1
 	return result
 
+# Convert a bit string into a state array
+# Input: bit string S
+# Output: state array representing S
+def bitsToStateArray(S):
+	stateArray = []
+	for x in range(5):
+		stateArray.append([])
+		for y in range(5):
+			stateArray[x].append([])
+			for z in range(w):
+				stateArray[x][y].append(S[w * (5 * y + x) + z])
+	return stateArray
+
+# Convert a state array back into a bit string
+# Input: state array S
+# Output: the bit string representing S
+def stateArrayToBits(S):
+	# Construct lanes
+	laneList = []
+	for j in range(5):
+		for i in range(5):
+			laneList.append(S[i][j])
+	# laneList: (0,0), (1,0), (2,0) ... (0,1), (1,1), (2,1) ... etc
+
+	#Construct planes
+	planeList = []
+	counter = 0
+	for i in range(5):
+		planeList.append([])
+		for j in range(5):
+			planeList[i].extend(laneList[counter])
+			counter += 1
+
+	# Construct final list
+	bitstring = []
+	for plane in planeList:
+		bitstring.extend(plane)
+
+	# Return the resulting bitstring
+	return bitstring
+
+
+#
+# KECCAK FUNCTIONS
+#
+
+# theta implementation
+# Input: state array S
+# Input: altered state array S'
+def theta(S):
+	C = []
+	for x in range(5):
+		C.append([])
+		for z in range(w):
+			C[x].append(0)
+			for y in range(5):
+				C[x][z] ^= S[x][y][z]
+	
+	D = []
+	for x in range(5):
+		D.append([])
+		for z in range(w):
+			D[x].append(C[(x - 1) % 5][z] ^ C[(x + 1) % 5][(z - 1) % w])
+
+	for x in range(5):
+		for y in range(5):
+			for z in range(w):
+				S[x][y][z] ^= D[x][z]
+	return S
+
+# rho implementation
+# Input: state array S
+# Input: altered state array S'
+def rho(S):
+	x = 1
+	y = 0
+	for t in range(24):
+		for z in range(w):
+			S[x][y][z] = S[x][y][int(z - (t + 1) * (t + 2) // 2) % w]
+			xTemp = x
+			yTemp = y
+			x = yTemp
+			y = ((2 * xTemp) + (3 * yTemp)) % 5
+	return S
+
+# pi implementation
+# Input: state array S
+# Output: altered state array S'
+def pi(S):
+	for x in range(5):
+		for y in range(5):
+			for z in range(w):
+				S[x][y][z] = S[(x + (3 * y)) % 5][x][z]
+	return S
+
+# chi implementation
+# Input: state array S
+# Output: altered state array S'
+def chi(S):
+	for x in range(5):
+		for y in range(5):
+			for z in range(w):
+				S[x][y][z] ^= ((S[(x + 1) % 5][y][z] ^ 1) * (S[(x + 2) % 5][y][z]))
+	return S
+
+# iota implementation
+# Input: state array S, round number roundNumber
+# Output: altered state array S'
+def iota(S, roundNumber):
+	roundConstant = [int(bit) for bit in RC[roundNumber]]
+	for z in range(w):
+		S[0][0][z] ^= roundConstant[z]
+	return S
+
+# Implemention of one permutation of KECCAK-p
+# Input: state array S
+# Output: state array S' which has gone through 12 + 2l rounds of KECCAK-p
+def keccakP(S):
+	stateArray = bitsToStateArray(S)
+	for roundIndex in range(numRounds):
+		stateArray = iota(chi(pi(rho(theta(stateArray)))), roundIndex)
+	return stateArrayToBits(stateArray)
+
 #
 # RUN SHA3
 #
@@ -95,7 +234,7 @@ def sha3_256(input):
 	# Create the initial state
 	state = [0] * b
 
-	# Run spong construction on each block
+	# Run sponge construction on each block
 	for block in blocks:
 
 		# XOR the block with the first r bits of the state
@@ -103,7 +242,7 @@ def sha3_256(input):
 			state[i] ^= block[i]
 
 		# Run the state through the f-function
-		# TODO: add f-function call
+		state = keccakP(state)
 
 	# Get the first digestSize bits from the resulting state
 	digest = state[:digestSize]
