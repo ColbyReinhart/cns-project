@@ -7,7 +7,7 @@
 # Requires python 3.10.0 or higher
 # run with "python test_collision.py"
 
-import hashlib                              # Library containing another implementation of SHA3-256
+import hashlib
 import sha3
 
 def compare(x, y) : 
