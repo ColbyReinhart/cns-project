@@ -262,5 +262,5 @@ def sha3_256(input):
 	# Return the result
 	return digest
 
-result = sha3_256(input("Give some input: "))
-print(result)
+#result = sha3_256(input("Give some input: "))
+#print(result)

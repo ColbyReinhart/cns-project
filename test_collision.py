@@ -66,22 +66,22 @@ print("\nBegin Testing Our Implementation\n")
 start = timeit.default_timer()
 
 index = 0
-testOutput = {}
+testOutput1 = {}
 for t in range(testSize) :
     inputSize = randint(1000, 100000)
     input = get_random_string(inputSize)
-    hash = hashlib.sha256(input.encode('utf-8')).hexdigest()
-    # if t % 100 == 0:
-    #     print("\tTest", t)
-    #     # print("\tInput:", input)
-    #     print("\tHash:", hash)
-    testOutput[hash] = index
+    hash = sha3_256(input)
+    if t % 10 == 0:
+        print("\tTest", t)
+        # print("\tInput:", input)
+        print("\tHash:", hash)
+    testOutput1[hash] = index
     index += 1
 
 print("\n\tNumber of Inputs:\t", testSize)
-print("\tNumber of Outputs:\t", len(testOutput), '\n')
+print("\tNumber of Outputs:\t", len(testOutput1), '\n')
 
-if testSize == len(testOutput) :
+if testSize == len(testOutput1) :
     print("\tNo Collision, Testing Successful!")
 else : 
     print("\tCollisions Detected, Testing Failed!")
@@ -90,4 +90,4 @@ end = timeit.default_timer()
 
 print("\tTime:", end - start, "seconds")
 
-print("\nDone testing Library Implementation")
+print("\nDone testing Our Implementation")
