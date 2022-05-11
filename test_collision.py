@@ -12,7 +12,7 @@ from random import choice, randint          # Used to randomly select characters
 from string import ascii_letters,  digits   # ASCII character (lower and upper), and digits 0-9
 import timeit                               # Library for timing program runtime
 
-from sha3 import *                          # Importing our implementation
+from sha3 import sha3_256                   # Importing our implementation
 
 
 # The logic behind our collision testing is simple: the dictionary data type in python
