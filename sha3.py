@@ -5,8 +5,9 @@
 
 # USAGE:
 # Requires python 3.10.0 or higher
-# Execute with "python sha3-256-v2.py"
-# TODO: ADD EXECUTION INSTRUCTIONS
+# Import this file and call sha3_256()
+# Input: a UTF8-encoded character string of arbitrary length
+# Output: a hex bit-string of length 64
 
 # KECCAK CONSTANTS
 l = 6		# Important for other constants/calculations
@@ -261,6 +262,3 @@ def sha3_256(input):
 	
 	# Return the result
 	return digest
-
-result = sha3_256(input("Give some input: "))
-print(result)
