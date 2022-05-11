@@ -10,6 +10,7 @@
 import hashlib                              # Library containing another implementation of SHA3-256
 from random import choice, randint          # Used to randomly select characters and numbers 
 from string import ascii_letters,  digits   # ASCII character (lower and upper), and digits 0-9
+import timeit                               #Library for timing program runtime
 
 
 # The logic behind our collision testing is simple: the dictionary data type in python
@@ -24,22 +25,22 @@ def get_random_string(x):
     return text
 
 
+testSize = int(input("Input Number of tests to run: "))
+
 # Testing the SHA3-256 library implementation
 print("\nBegin Testing Library Implementation\n")
-
-testSize = int(input("Input Number of tests to run: "))
+start = timeit.default_timer()
 
 index = 0
 testOutput = {}
-#testSize = 1000
 for t in range(testSize) :
     inputSize = randint(1000, 100000)
     input = get_random_string(inputSize)
     hash = hashlib.sha256(input.encode('utf-8')).hexdigest()
-    if randint(1,10) == 10:
-        print("\tTest", t)
-        # print("\tInput:", input)
-        print("\tHash:", hash)
+    # if t % 100 == 0:
+    #     print("\tTest", t)
+    #     # print("\tInput:", input)
+    #     print("\tHash:", hash)
     testOutput[index] = hash
     index += 1
 
@@ -47,9 +48,12 @@ print("\n\tNumber of Inputs:\t", testSize)
 print("\tNumber of Outputs:\t", len(testOutput), '\n')
 
 if testSize == len(testOutput) :
-    print("No Collision, Testing Successful!")
+    print("\tNo Collision, Testing Successful!")
 else : 
-    print("Collisions Detected, Testing Failed!")
+    print("\tCollisions Detected, Testing Failed!")
 
+end = timeit.default_timer()
+
+print("\tTime:", end - start, "seconds")
 
 print("\nDone testing Library Implementation")
